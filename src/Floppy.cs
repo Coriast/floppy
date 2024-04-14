@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace floppy.src;
 
@@ -7,9 +8,7 @@ public class Floppy
     private string _filePath;
     private string _rootPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\songs";
     private int _maxThreads = 3;
-    private Process[] processes; 
     private string youtubeCommand = "youtube-dl";
-    private ProcessStartInfo _processInfo;
 
     public Floppy(string filePath)
     {
@@ -19,15 +18,6 @@ public class Floppy
             Environment.Exit(0);
         }
         _filePath = filePath;
-
-        _processInfo = new ProcessStartInfo
-        {
-            CreateNoWindow = false,
-            UseShellExecute = true,
-            WindowStyle = ProcessWindowStyle.Normal,
-            FileName = youtubeCommand,
-        };
-        processes = new Process[_maxThreads];
 	}
 
     public void Run()
@@ -81,40 +71,49 @@ public class Floppy
         songList.Close();
 
         Console.WriteLine("--Finished--");
-
-        List<Album> allAlbuns = new List<Album>();
-        foreach(Band band in bands)
+        Parallel.ForEach(bands, new ParallelOptions { MaxDegreeOfParallelism = _maxThreads }, band =>
         {
-            allAlbuns.AddRange(band.albuns);
-            allAlbuns.AddRange(band.singles);
-        }
+            List<Album> allSongs = band.albuns;
+            allSongs.AddRange(band.singles);
 
-        PrintBands(bands);
-
-		string songsInBatch = string.Empty;
-        for (int i = 0; i + _maxThreads < allAlbuns.Count; i += _maxThreads)
-        {
-
-            for (int j = 0; j < _maxThreads; j++)
+            foreach (Album song in allSongs)
             {
-                songsInBatch += $"\n\t{allAlbuns[j + i].path}";
-                _processInfo.Arguments = $" -x -o \"{allAlbuns[j + i].path}\\%(title)s.%(ext)s\" \"{allAlbuns[j + i].link}\"";
-                var process = Process.Start(_processInfo);
-                processes[j] = process;
+                var process = Process.Start(new ProcessStartInfo
+				{
+					CreateNoWindow = false,
+					UseShellExecute = true,
+					WindowStyle = ProcessWindowStyle.Normal,
+					FileName = youtubeCommand,
+                    Arguments = $" -x --audio-format wav -o \"{song.path}\\%(title)s.%(ext)s\" \"{song.link}\""
+				});
+                process.WaitForExit();
+                Console.WriteLine($"{song.name} in {song.path}");
             }
+        });
 
-            for (int j = 0; j < _maxThreads; j++)
-            {
-                processes[j].WaitForExit();
-            }
+        //for (int i = 0; i + _maxThreads < allAlbuns.Count; i += _maxThreads)
+        //{
 
-            Console.Write(songsInBatch);
-            songsInBatch = string.Empty;
-        }
+        //    for (int j = 0; j < _maxThreads; j++)
+        //    {
+        //        songsInBatch += $"\n\t{allAlbuns[j + i].path}";
+        //        _processInfo.Arguments = $" -x -o \"{allAlbuns[j + i].path}\\%(title)s.%(ext)s\" \"{allAlbuns[j + i].link}\"";
+        //        var process = Process.Start(_processInfo);
+        //        processes[j] = process;
+        //    }
+
+        //    for (int j = 0; j < _maxThreads; j++)
+        //    {
+        //        processes[j].WaitForExit();
+        //    }
+
+        //    Console.Write(songsInBatch);
+        //    songsInBatch = string.Empty;
+        //}
 
     }
 
-	private void PrintBands(List<Band> bands)
+    private void PrintBands(List<Band> bands)
     {
 		foreach (Band band in bands)
 		{
