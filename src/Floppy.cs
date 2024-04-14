@@ -47,22 +47,26 @@ public class Floppy
                 if (_band != null)
                     bands.Add(_band);
 
-                string bandName = line.Substring(2);
+                string bandName = line.Substring(2).Replace('.', ' ');
                 _band = new Band
                 {
                     name = bandName,
                     path = _rootPath + $"\\{bandName}",
                     albuns = new List<Album>(),
-                    linkSingles = new List<string>()
+                    singles = new List<Album>()
                 };
+                
             }
             else if(line.StartsWith("- "))
             {
-                string? albumLink;
+                if (_band == null)
+                    continue;
+
+				string? albumLink;
                 if((albumLink = songList.ReadLine()) == null)
                     break;
 
-				string albumName = line.Substring(2);
+				string albumName = line.Substring(2).Replace('.', ' ');
                 Album _album = new Album
                 {
                     name = albumName,
@@ -70,45 +74,45 @@ public class Floppy
                     link = albumLink
                 };
 
-                _band.linkSingles.AddRange(GetSinglesLink(songList));
+                UpdateSingles(songList, _band);
                 _band.albuns.Add(_album);
             }
         }
         songList.Close();
 
         Console.WriteLine("--Finished--");
-        string songsInBatch = string.Empty;
 
         List<Album> allAlbuns = new List<Album>();
         foreach(Band band in bands)
         {
-            foreach(Album album in band.albuns)
-            {
-                allAlbuns.Add(album);
-            }
+            allAlbuns.AddRange(band.albuns);
+            allAlbuns.AddRange(band.singles);
         }
 
-        for(int i = 0; i + _maxThreads < allAlbuns.Count; i += _maxThreads) 
+        PrintBands(bands);
+
+		string songsInBatch = string.Empty;
+        for (int i = 0; i + _maxThreads < allAlbuns.Count; i += _maxThreads)
         {
 
-            for(int j = 0; j < _maxThreads; j++)
+            for (int j = 0; j < _maxThreads; j++)
             {
                 songsInBatch += $"\n\t{allAlbuns[j + i].path}";
-                _processInfo.Arguments = $" --hls-prefer-ffmpeg -x --audio-format mp3 -o \"{allAlbuns[j + i].path}\\%(title)s.%(ext)s\" \"{allAlbuns[j + i].link}\"";
+                _processInfo.Arguments = $" -x -o \"{allAlbuns[j + i].path}\\%(title)s.%(ext)s\" \"{allAlbuns[j + i].link}\"";
                 var process = Process.Start(_processInfo);
                 processes[j] = process;
             }
 
-			for (int j = 0; j < _maxThreads; j++)
-			{
+            for (int j = 0; j < _maxThreads; j++)
+            {
                 processes[j].WaitForExit();
-			}
+            }
 
-			Console.Write(songsInBatch);
+            Console.Write(songsInBatch);
             songsInBatch = string.Empty;
-		}
+        }
 
-	}
+    }
 
 	private void PrintBands(List<Band> bands)
     {
@@ -121,17 +125,16 @@ public class Floppy
 				Console.WriteLine("\t" + album.name);
 				Console.WriteLine("\t" + album.path);
 			}
-			foreach (string single in band.linkSingles)
+			foreach (Album single in band.singles)
 			{
-				Console.WriteLine(single);
+				Console.WriteLine("\t" + single.name);
+				Console.WriteLine("\t" + single.path);
 			}
 		}
 	}
 
-    private List<string> GetSinglesLink(StreamReader songList)
+    private void UpdateSingles(StreamReader songList, Band band)
     {
-        List<string> _singles = new List<string>();
-
         string line;
         while((line = songList.ReadLine()!) != null)
         {
@@ -139,9 +142,13 @@ public class Floppy
                 break;
 			if (string.IsNullOrEmpty(line))
 				continue;
-			_singles.Add(line);
+
+            band.singles.Add(new Album {
+                name = band.name,
+                path = band.path,
+                link = line
+            });
         }
-        return _singles;
     }
 
 	class Album
@@ -156,6 +163,6 @@ public class Floppy
 		public string name;
 		public string path;
 		public List<Album> albuns;
-		public List<string> linkSingles;
+		public List<Album> singles;
 	}
 }
