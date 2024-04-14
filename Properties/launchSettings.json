@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "floppy": {
+      "commandName": "Project",
+      "commandLineArgs": "songs.txt",
+      "workingDirectory": "C:\\Users\\pedro\\OneDrive\\Área de Trabalho"
+    }
+  }
+}
