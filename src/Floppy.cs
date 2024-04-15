@@ -1,34 +1,57 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.Diagnostics;
 
 namespace floppy.src;
 
 public struct Options
 {
-    public int maxThreads;
+    public int maxThreads = 2;
+    public string inputPath = string.Empty;
+    public string outputPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\songs";
+
+	public Options() {}
 }
 
 public class Floppy
 {
-    private string _filePath;
-    private string _rootPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\songs";
-    private int _maxThreads = 3;
     private string youtubeCommand = "youtube-dl";
+    private Options _options;
 
-    public Floppy(string filePath)
+    public Floppy(string[] args)
     {
-        if (!File.Exists(filePath))
+		_options = new Options();
+		for (int i = 0; i < args.Length; i++)
         {
-            Console.WriteLine("File does not exists.");
-            Environment.Exit(0);
+            if (args[i].StartsWith("-"))
+            {
+                if (string.Equals(args[i], "-threads") || string.Equals(args[i], "-t"))
+                {
+                    _options.maxThreads = int.TryParse(args.ElementAtOrDefault(i+1), out int number) ? number : 2;
+                    i++;
+                }
+                else if(string.Equals(args[i], "-output") || string.Equals(args[i], "-o"))
+                {
+                    string? _path = args.ElementAtOrDefault(i + 1);
+                    if (_path != null)
+                        _options.outputPath = _path;
+                    i++;
+                }
+
+            }
+            else
+            {
+                if (!File.Exists(args[i]))
+                {
+					Console.WriteLine("File does not exists.");
+					Environment.Exit(0);
+				}
+                _options.inputPath = args[i];
+            }
         }
-        _filePath = filePath;
 	}
 
     public void Run()
     {
-        StreamReader songList = File.OpenText(_filePath);
+        StreamReader songList = File.OpenText(_options.inputPath);
 
         List<Band> bands = new List<Band>();
         Band? _band = null;
@@ -47,7 +70,7 @@ public class Floppy
                 _band = new Band
                 {
                     name = bandName,
-                    path = _rootPath + $"\\{bandName}",
+                    path = _options.outputPath + $"\\{bandName}",
                     albuns = new List<Album>(),
                     singles = new List<Album>()
                 };
@@ -86,17 +109,19 @@ public class Floppy
         });
 
         Console.WriteLine("--Finished--");
-        Parallel.ForEach(downloads, new ParallelOptions { MaxDegreeOfParallelism = _maxThreads }, download =>
+        Parallel.ForEach(downloads, new ParallelOptions { MaxDegreeOfParallelism = _options.maxThreads }, download =>
         {
-            var process = Process.Start(new ProcessStartInfo
-			{
-				CreateNoWindow = false,
-				UseShellExecute = true,
-				WindowStyle = ProcessWindowStyle.Normal,
-				FileName = youtubeCommand,
+            Process process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                CreateNoWindow = false,
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Normal,
+                FileName = youtubeCommand,
                 Arguments = $" -x --hls-prefer-ffmpeg --audio-format wav --audio-quality 0 -o \"{download.path}\\%(title)s.%(ext)s\" \"{download.link}\""
-			});
-            process.WaitForExit();
+            };
+			process.Start();
+			process.WaitForExit();
             Console.WriteLine($"{download.name} in {download.path}");
         });
     }

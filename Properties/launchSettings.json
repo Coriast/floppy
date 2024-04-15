@@ -2,7 +2,7 @@
   "profiles": {
     "floppy": {
       "commandName": "Project",
-      "commandLineArgs": "songs.txt",
+      "commandLineArgs": "-threads 3 -o \"C:\\Users\\pedro\\OneDrive\\Área de Trabalho\\test\" songs.txt",
       "workingDirectory": "C:\\Users\\pedro\\OneDrive\\Área de Trabalho"
     }
   }

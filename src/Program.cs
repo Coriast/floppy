@@ -10,7 +10,7 @@ public class Program
 			return;
 		}
 
-		Floppy fp = new Floppy(args[0]);
+		Floppy fp = new Floppy(args);
 
 		fp.Run();
 	}
