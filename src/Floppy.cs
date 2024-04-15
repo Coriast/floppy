@@ -1,7 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 
 namespace floppy.src;
+
+public struct Options
+{
+    public int maxThreads;
+}
 
 public class Floppy
 {
@@ -37,7 +43,7 @@ public class Floppy
                 if (_band != null)
                     bands.Add(_band);
 
-                string bandName = line.Substring(2).Replace('.', ' ');
+                string bandName = line.Substring(2).Replace(".", "");
                 _band = new Band
                 {
                     name = bandName,
@@ -45,8 +51,8 @@ public class Floppy
                     albuns = new List<Album>(),
                     singles = new List<Album>()
                 };
-                
-            }
+				UpdateSingles(songList, _band);
+			}
             else if(line.StartsWith("- "))
             {
                 if (_band == null)
@@ -56,61 +62,43 @@ public class Floppy
                 if((albumLink = songList.ReadLine()) == null)
                     break;
 
-				string albumName = line.Substring(2).Replace('.', ' ');
+				string albumName = line.Substring(2).Replace(".", "");
                 Album _album = new Album
                 {
                     name = albumName,
                     path = _band.path + $"\\{albumName}",
                     link = albumLink
                 };
-
-                UpdateSingles(songList, _band);
-                _band.albuns.Add(_album);
+				_band.albuns.Add(_album);
+				UpdateSingles(songList, _band);
             }
-        }
+            if (songList.Peek() == -1 && _band != null)
+                bands.Add(_band);
+		}
         songList.Close();
 
-        Console.WriteLine("--Finished--");
-        Parallel.ForEach(bands, new ParallelOptions { MaxDegreeOfParallelism = _maxThreads }, band =>
-        {
-            List<Album> allSongs = band.albuns;
-            allSongs.AddRange(band.singles);
+        List<Album> downloads = new List<Album>();
 
-            foreach (Album song in allSongs)
-            {
-                var process = Process.Start(new ProcessStartInfo
-				{
-					CreateNoWindow = false,
-					UseShellExecute = true,
-					WindowStyle = ProcessWindowStyle.Normal,
-					FileName = youtubeCommand,
-                    Arguments = $" -x --audio-format wav -o \"{song.path}\\%(title)s.%(ext)s\" \"{song.link}\""
-				});
-                process.WaitForExit();
-                Console.WriteLine($"{song.name} in {song.path}");
-            }
+        bands.ForEach(band =>
+        {
+            downloads.AddRange(band.albuns);
+            downloads.AddRange(band.singles);
         });
 
-        //for (int i = 0; i + _maxThreads < allAlbuns.Count; i += _maxThreads)
-        //{
-
-        //    for (int j = 0; j < _maxThreads; j++)
-        //    {
-        //        songsInBatch += $"\n\t{allAlbuns[j + i].path}";
-        //        _processInfo.Arguments = $" -x -o \"{allAlbuns[j + i].path}\\%(title)s.%(ext)s\" \"{allAlbuns[j + i].link}\"";
-        //        var process = Process.Start(_processInfo);
-        //        processes[j] = process;
-        //    }
-
-        //    for (int j = 0; j < _maxThreads; j++)
-        //    {
-        //        processes[j].WaitForExit();
-        //    }
-
-        //    Console.Write(songsInBatch);
-        //    songsInBatch = string.Empty;
-        //}
-
+        Console.WriteLine("--Finished--");
+        Parallel.ForEach(downloads, new ParallelOptions { MaxDegreeOfParallelism = _maxThreads }, download =>
+        {
+            var process = Process.Start(new ProcessStartInfo
+			{
+				CreateNoWindow = false,
+				UseShellExecute = true,
+				WindowStyle = ProcessWindowStyle.Normal,
+				FileName = youtubeCommand,
+                Arguments = $" -x --hls-prefer-ffmpeg --audio-format wav --audio-quality 0 -o \"{download.path}\\%(title)s.%(ext)s\" \"{download.link}\""
+			});
+            process.WaitForExit();
+            Console.WriteLine($"{download.name} in {download.path}");
+        });
     }
 
     private void PrintBands(List<Band> bands)
@@ -149,19 +137,18 @@ public class Floppy
             });
         }
     }
-
 	class Album
 	{
-		public string name;
-		public string path;
-		public string link;
+		public string name = string.Empty;
+		public string path = string.Empty;
+		public string link = string.Empty;
 	}
 
 	class Band
 	{
-		public string name;
-		public string path;
-		public List<Album> albuns;
-		public List<Album> singles;
+		public string name = string.Empty;
+		public string path = string.Empty;
+		public List<Album> albuns = new List<Album>();
+		public List<Album> singles = new List<Album>();
 	}
 }
