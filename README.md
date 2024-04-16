@@ -24,6 +24,13 @@ ffmpeg - to convert to mp3.
   .\floppy songs.txt
 ```
 
+# Options
+
+```
+	-t, -threads	Set the number of threads to run asynchronously (defaults to 2 if none is given)
+	-o, -output		Set the output folder (defaults to user profile folder)
+```
+
 # File Format
 
 ```
