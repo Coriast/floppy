@@ -52,6 +52,3 @@ ffmpeg - to convert the files.
 : band n name
 ...
 ```
-
-## Some bugs that it has now
-- Some album names have a # at the end
