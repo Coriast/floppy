@@ -1,5 +1,5 @@
 # floppy
-floppy - Download youtube playlists as mp3 files.
+floppy - Download youtube musics.
 
 # How to install
 
