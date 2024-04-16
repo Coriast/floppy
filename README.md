@@ -1,5 +1,5 @@
 # floppy
-floppy - Download youtube playlists as mp3 files.
+floppy - Download youtube musics.
 
 # How to install
 
@@ -53,8 +53,4 @@ ffmpeg - to convert to mp3.
 ```
 
 ## Some bugs that it has now
-
-- Singles are not being donwloaded (just add them to the loop)
 - Some album names have a # at the end
-- It did not donwload the last album
-- The actual multithreading is a work around, it is synchronous, as it waits for until all the current instances have ended to start the next ones. (Check Concurrent Collection to manipulate the data with Parallel ForEach)
