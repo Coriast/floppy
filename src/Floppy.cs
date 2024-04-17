@@ -118,7 +118,7 @@ public class Floppy
                 UseShellExecute = true,
                 WindowStyle = ProcessWindowStyle.Normal,
                 FileName = youtubeCommand,
-                Arguments = $" -x --hls-prefer-ffmpeg --audio-format wav --audio-quality 0 -o \"{download.path}\\%(title)s.%(ext)s\" \"{download.link}\""
+                Arguments = $" -x --audio-quality 0 -o \"{download.path}\\%(title)s.%(ext)s\" \"{download.link}\""
             };
 			process.Start();
 			process.WaitForExit();
