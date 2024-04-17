@@ -5,7 +5,7 @@ floppy - Download youtube musics.
 
 ### dependencies
 youtube-dl - to download the files from the provided url. <br>
-ffmpeg - to convert to mp3.
+ffmpeg - to convert the files.
 
 ### Installing the dependencies:
 ```bash
@@ -27,8 +27,9 @@ ffmpeg - to convert to mp3.
 # Options
 
 ```
-	-t, -threads	Set the number of threads to run asynchronously (defaults to 2 if none is given)
-	-o, -output		Set the output folder (defaults to user profile folder)
+	-t, -threads	Set the number of threads to run asynchronously
+			(defaults to 2 if none is given)
+	-o, -output	Set the output folder (defaults to user profile folder)
 ```
 
 # File Format
@@ -51,6 +52,3 @@ ffmpeg - to convert to mp3.
 : band n name
 ...
 ```
-
-## Some bugs that it has now
-- Some album names have a # at the end
